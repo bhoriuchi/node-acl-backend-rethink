@@ -1,0 +1,44 @@
+{
+  "name": "acl-backend-rethinkdb",
+  "version": "0.1.0",
+  "description": "RethinkDB backend for acl",
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhoriuchi/node-acl-backend-rethink.git"
+  },
+  "scripts": {
+    "buildexample": "npm run build && rollup example/example.js --output example/build.js --format cjs && node example/build.js --harmony",
+    "example": "rollup example/example.js --output example/build.js --format cjs && node example/build.js --harmony",
+    "build": "rollup -c build/rollup.config.js",
+    "test": "npm run build && mocha test/index.js"
+  },
+  "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
+  "dependencies": {},
+  "devDependencies": {
+    "acl": "^0.4.0",
+    "chai": "^3.5.0",
+    "lodash": "^4.13.0",
+    "mocha": "^2.5.3",
+    "rethinkdbdash": "^2.3.6",
+    "rewire": "^2.5.1",
+    "rollup": "^0.31.2",
+    "rollup-plugin-babel": "^2.5.1",
+    "babel-preset-es2015-rollup": "^1.1.1"
+  },
+  "bugs": {
+    "url": "https://github.com/bhoriuchi/node-acl-backend-rethink/issues"
+  },
+  "homepage": "https://github.com/bhoriuchi/node-acl-backend-rethink#readme",
+  "directories": {
+    "example": "example"
+  },
+  "keywords": [
+    "acl",
+    "rethink",
+    "rethinkdb",
+    "backend",
+    "node"
+  ]
+}
