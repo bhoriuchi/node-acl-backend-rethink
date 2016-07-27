@@ -1,5 +1,14 @@
 import _ from 'lodash'
 
+export function getTableName (backend, bucket) {
+  return backend.prefix + (backend.useSingle ? backend.table : bucket)
+}
+
+export function pushUniq (val, arr = []) {
+  if (!_.includes(arr, val)) arr.push(val)
+  return arr
+}
+
 /* start https://github.com/OptimalBits/node_acl/blob/master/lib/mongodb-backend.js */
 export function encodeText(text) {
   if (typeof text == 'string' || text instanceof String) {
@@ -85,86 +94,6 @@ export function selectKey (backend, key, bucket) {
   return filter
 }
 
-export function hasKey (backend, key, bucket, success, fail) {
-
-  let collName = backend.useSingle ? backend.table : bucket
-  let bucketName = backend.prefix + collName
-
-  return backend.r.do(
-    backend.db.table(bucketName).filter(selectKey(backend, key, bucket)),
-    (docs) => {
-      return backend.r.branch(
-        docs.count().gt(0),
-        backend.r.expr(success(docs)),
-        backend.r.expr(fail())
-      )
-    }
-  )
-}
-
-
-// re-usable get union function which returns a query
-export function getUnion (backend, bucket, keys, cb) {
-
-  let collName = backend.useSingle ? backend.table : bucket
-  let bucketName = backend.prefix + collName
-  
-  return backend.r.do(
-    backend.db.table(bucketName).filter(selectKeys(backend, keys, bucket)),
-    (docs) => {
-      if (!docs.length) return cb([])
-      var keyArrays = []
-      docs = fixAllKeys(docs)
-      docs.forEach((doc) => {
-        keyArrays.push.apply(keyArrays, _.keys(doc))
-      })
-      return cb(_.without(_.union(keyArrays), 'key', 'id', '_bucketname'))
-    }
-  )
-}
-
-export function pushAdd (backend, trx, bucket, collName, key, values, createTable = false) {
-  let table = backend.db.table(backend.prefix + collName)
-  let doc = {}
-
-  values.forEach((value) => { doc[value] = true })
-
-  if (createTable) trx.push(backend.db.tableCreate(backend.prefix + collName))
-  trx.push(
-    hasKey(
-      backend,
-      key,
-      bucket,
-      // success
-      (docs) => {
-        docs.update(doc)
-      },
-      // fail
-      () => {
-        table.insert(doc)
-      }
-    )
-  )
-  if (backend.useSingle) trx.push(table.index_create('_bucketname', 'key'))
-  
-  return trx
-}
-
-export function tableExists (backend, tableName, success, fail) {
-  return backend.r.do(
-    backend.db.tableList().filter((name) => {
-      return name.eq(tableName)
-    }),
-    (list) => {
-      backend.r.branch(
-        list.count().gt(0),
-        backend.r.expr(success()),
-        backend.r.expr(fail())
-      )
-    }
-  )
-}
-
 export default {
   encodeText,
   decodeText,
@@ -173,10 +102,6 @@ export default {
   fixKeys,
   fixAllKeys,
   makeArray,
-  getUnion,
-  pushAdd,
-  tableExists,
   selectKeys,
-  selectKey,
-  hasKey
+  selectKey
 }

@@ -115,4 +115,4 @@ var argsToString = function (args) {
   return res
 }
 
-exports = module.exports = contract
+export default contract
