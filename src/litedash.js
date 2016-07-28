@@ -122,6 +122,9 @@ export function union () {
   return uniq(newList)
 }
 
+export function toArray (args) {
+  return Array.prototype.slice.call(args)
+}
 export default {
   isFunction,
   isNumber,
@@ -140,5 +143,6 @@ export default {
   omit,
   contains,
   uniq,
-  union
+  union,
+  toArray
 }

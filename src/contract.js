@@ -14,7 +14,8 @@
 
  */
 let noop = {}
-import _ from 'lodash'
+import _ from './litedash'
+// import _ from 'lodash'
 
 noop.params = function () {
   return this
@@ -87,7 +88,7 @@ var printParamsError = function (args, checkedParams) {
     type,
     input,
     i
-  _.each(args, function (input, key) {
+  _.forEach(args, function (input, key) {
     type = typeOf(input)
     if (key != 0) {
       msg += ', '
@@ -106,7 +107,7 @@ var printParamsError = function (args, checkedParams) {
 
 var argsToString = function (args) {
   var res = ""
-  _.each(args, function (arg, key) {
+  _.forEach(args, function (arg, key) {
     if (key != 0) {
       res += ', '
     }

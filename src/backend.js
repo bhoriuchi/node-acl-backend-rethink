@@ -18,7 +18,7 @@ import {
 
 const OMIT_FIELDS = { _bucketname: true, key: true, id: true }
 
-function RethinkDBBackend (r, opts) {
+function RethinkDBBackend (r, opts, connection) {
   opts = _.isHash(opts) ? opts : {}
   this.r = r
   this.db = opts.db || 'test'
@@ -26,7 +26,7 @@ function RethinkDBBackend (r, opts) {
   this.useSingle = Boolean(opts.useSingle)
   this.table = opts.table || 'resources'
   this.ensureTable = Boolean(opts.ensureTable)
-  this.connection = opts.connection
+  this.connection = connection
   this._dbc = this.r.db(this.db)
 }
 
@@ -237,7 +237,7 @@ RethinkDBBackend.prototype = {
           return this.r.branch(
             docs.count().gt(0).coerceTo('bool'),
             t.table.filter(filter).delete(),
-            () => false
+            []
           )
         }
       )
@@ -269,7 +269,7 @@ RethinkDBBackend.prototype = {
           return this.r.branch(
             docs.count().gt(0).coerceTo('bool'),
             t.table.get(docs.nth(0)('id')).replace(docs.nth(0)),
-            () => false
+            []
           )
         }
       )

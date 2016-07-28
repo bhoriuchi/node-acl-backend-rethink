@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import _ from './litedash'
 
 export function getTableName (backend, bucket) {
   return backend.prefix + (backend.useSingle ? backend.table : bucket)
