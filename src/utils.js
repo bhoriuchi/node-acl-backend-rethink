@@ -4,6 +4,12 @@ export function getTableName (backend, bucket) {
   return backend.prefix + (backend.useSingle ? backend.table : bucket)
 }
 
+export function getTable (backend, bucket) {
+  let name = getTableName(backend, bucket)
+  let table = backend.db.table(name)
+  return { name, table }
+}
+
 export function pushUniq (val, arr = []) {
   if (!_.includes(arr, val)) arr.push(val)
   return arr
@@ -103,5 +109,7 @@ export default {
   fixAllKeys,
   makeArray,
   selectKeys,
-  selectKey
+  selectKey,
+  getTableName,
+  getTable
 }

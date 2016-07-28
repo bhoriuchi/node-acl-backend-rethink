@@ -11,12 +11,12 @@ import {
   makeArray,
   selectKey,
   selectKeys,
-  getTableName,
+  getTable,
   pushUniq,
   fixAllKeys
 } from './utils'
 
-const REMOVE_FIELDS = ['key', 'id', '_bucketname']
+const OMIT_FIELDS = { _bucketname: true, key: true, id: true }
 
 function RethinkDBBackend (r, opts) {
   opts = _.isHash(opts) ? opts : {}
@@ -104,11 +104,11 @@ RethinkDBBackend.prototype = {
       .params('string', 'string|number', 'function')
       .end()
 
-    let table = this.db.table(getTableName(this, bucket))
+    let t = getTable(this, bucket)
     let filter = selectKey(this, key, bucket)
 
-    return table.filter(filter).run().then((docs) => {
-      if (docs.length) return cb(null, _.keys(_.omit(docs[0], REMOVE_FIELDS)))
+    return t.table.filter(filter).without(OMIT_FIELDS).run().then((docs) => {
+      if (docs.length) return cb(null, _.keys(docs[0]))
       cb(null, [])
     }).catch((err) => {
       cb(err)
@@ -124,13 +124,11 @@ RethinkDBBackend.prototype = {
       .end()
 
     let result = {}
-    let omitFields = { _bucketname: true, key: true, id: true }
 
     return this.r.expr(buckets).map((bucket) => {
-      let tableName = this.prefix + (this.useSingle ? this.table : bucket)
-      let table = this.db.table(tableName)
+      let t = getTable(this, bucket)
       let filter = selectKeys(this, keys, bucket)
-      return table.filter(filter).without(omitFields)
+      return t.table.filter(filter).without(OMIT_FIELDS)
     }).run().then((results) => {
       _.forEach(buckets, (name, idx) => {
         let docs = results[idx]
@@ -161,12 +159,10 @@ RethinkDBBackend.prototype = {
     keys = makeArray(keys)
 
     let keyArrays = []
-    let tableName = this.prefix + (this.useSingle ? this.table : bucket)
-    let table = this.db.table(tableName)
+    let t = getTable(this, bucket)
     let filter = selectKeys(this, keys, bucket)
-    let omitFields = { _bucketname: true, key: true, id: true }
 
-    return table.filter(filter).without(omitFields).run().then((docs) => {
+    return t.table.filter(filter).without(OMIT_FIELDS).run().then((docs) => {
       if (!docs.length) return cb(null, [])
 
       fixAllKeys(docs).forEach((doc) => {
@@ -190,22 +186,21 @@ RethinkDBBackend.prototype = {
     key = encodeText(key)
 
     let doc = {}
-    let tableName = this.prefix + (this.useSingle ? this.table : bucket)
-    let table = this.db.table(tableName)
+    let t = getTable(this, bucket)
     let filter = selectKey(this, key, bucket)
 
     values = makeArray(values)
     values.forEach((value) => { doc[value] = true })
-    pushUniq(tableName, trx.tables)
+    pushUniq(t.name, trx.tables)
 
     trx.ops.push(
       this.r.do(
-        table.filter(filter).coerceTo('array'),
+        t.table.filter(filter).coerceTo('array'),
         (docs) => {
           return this.r.branch(
             docs.count().gt(0).coerceTo('bool'),
-            table.get(docs.nth(0)('id')).update(doc),
-            table.insert(Object.assign({}, filter, doc))
+            t.table.get(docs.nth(0)('id')).update(doc),
+            t.table.insert(Object.assign({}, filter, doc))
           )
         }
       )
@@ -222,19 +217,18 @@ RethinkDBBackend.prototype = {
 
     keys = makeArray(keys)
 
-    let tableName = this.prefix + (this.useSingle ? this.table : bucket)
-    let table = this.db.table(tableName)
+    let t = getTable(this, bucket)
     let filter = selectKeys(this, keys, bucket)
 
-    pushUniq(tableName, trx.tables)
+    pushUniq(t.name, trx.tables)
 
     trx.ops.push(
       this.r.do(
-        table.filter(filter).coerceTo('array'),
+        t.table.filter(filter).coerceTo('array'),
         (docs) => {
           return this.r.branch(
             docs.count().gt(0).coerceTo('bool'),
-            table.filter(filter).delete(),
+            t.table.filter(filter).delete(),
             () => false
           )
         }
@@ -253,21 +247,20 @@ RethinkDBBackend.prototype = {
     key = encodeText(key)
 
     let doc = {}
-    let tableName = this.prefix + (this.useSingle ? this.table : bucket)
-    let table = this.db.table(tableName)
+    let t = getTable(this, bucket)
     let filter = selectKey(this, key, bucket)
 
     values = makeArray(values)
     values.forEach((value) => { doc[value] = true })
-    pushUniq(tableName, trx.tables)
+    pushUniq(t.name, trx.tables)
 
     trx.ops.push(
       this.r.do(
-        table.filter(filter).without(doc).coerceTo('array'),
+        t.table.filter(filter).without(doc).coerceTo('array'),
         (docs) => {
           return this.r.branch(
             docs.count().gt(0).coerceTo('bool'),
-            table.get(docs.nth(0)('id')).replace(docs.nth(0)),
+            t.table.get(docs.nth(0)('id')).replace(docs.nth(0)),
             () => false
           )
         }
