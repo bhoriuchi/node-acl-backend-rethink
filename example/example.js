@@ -3,6 +3,7 @@ var Promise = require('bluebird')
 var acl = require('acl')
 var rethinkdbdash = require('rethinkdbdash')
 var RethinkDBBackend = require('../src/backend').default
+// var RethinkDBBackend = require('../index')
 var r = rethinkdbdash()
 var rdb = require('rethinkdb')
 var _ = require('lodash')
@@ -14,8 +15,8 @@ var opts = {
   ensureTable: true
 }
 
-var dash = false
-var fullTest = true
+var dash = true
+var testToRun = 'full'
 
 if (dash) {
   // rethinkdbdash backend
@@ -37,95 +38,120 @@ function cb (from) {
 }
 
 function testIt (backend) {
+  testToRun = testToRun || 'full'
+
+  console.log('-- RUNNING', testToRun, 'TEST -- ')
+
   // new acl instance, promisified to avoid callback hell
   acl = Promise.promisifyAll(new acl(backend))
 
-  if (fullTest) {
-    console.log('-- RUNNING FULL TEST -- ')
-    currentTest = 'clean'
-    acl.backend.clean(function (err) {
+  switch (testToRun) {
 
-      if (err) throw err
-      currentTest = 'addUserRoles'
-      acl.addUserRolesAsync('john', 'admin').then(function () {
+    case 'full':
+      currentTest = 'clean'
+      acl.backend.clean(function (err) {
 
-        console.log('SUCCESS:', currentTest)
-        currentTest = 'hasRole'
-        return acl.hasRoleAsync('john', 'admin')
+        if (err) throw err
+        currentTest = 'addUserRoles'
+        acl.addUserRolesAsync('john', 'admin').then(function () {
 
-      }).then(function (hasRole) {
+          console.log('SUCCESS:', currentTest)
+          currentTest = 'hasRole'
+          return acl.hasRoleAsync('john', 'admin')
 
-        hasRole ? console.log('SUCCESS:', currentTest) : console.log('FAILED:', currentTest)
-        currentTest = 'allow'
-        return acl.allowAsync('admin', 'testResource', 'write')
+        }).then(function (hasRole) {
 
-      }).then(function () {
+          hasRole ? console.log('SUCCESS:', currentTest) : console.log('FAILED:', currentTest)
+          currentTest = 'allow'
+          return acl.allowAsync('admin', 'testResource', 'write')
 
-        console.log('SUCCESS:', currentTest)
-        currentTest = 'isAllowed'
-        return acl.isAllowed('john', 'testResource', 'write')
+        }).then(function () {
 
-      }).then(function (isAllowed) {
+          console.log('SUCCESS:', currentTest)
+          currentTest = 'isAllowed'
+          return acl.isAllowedAsync('john', 'testResource', 'write')
 
-        isAllowed ? console.log('SUCCESS:', currentTest) : console.log('FAILED:', currentTest)
-        currentTest = 'allowedPermissions'
-        return acl.allowedPermissionsAsync('john', 'testResource')
+        }).then(function (isAllowed) {
 
-      }).then(function (permissions) {
+          isAllowed ? console.log('SUCCESS:', currentTest) : console.log('FAILED:', currentTest)
+          currentTest = 'allowedPermissions'
+          return acl.allowedPermissionsAsync('john', 'testResource')
 
-        var success = _.get(permissions, 'testResource[0]') === 'write'
-        success ? console.log('SUCCESS:', currentTest, '-', permissions) : console.log('FAILED:', currentTest)
-        currentTest = 'removeAllow'
-        return acl.removeAllow('admin', 'testResource', 'write')
+        }).then(function (permissions) {
 
-      }).then(function () {
+          var success = _.get(permissions, 'testResource[0]') === 'write'
+          success ? console.log('SUCCESS:', currentTest, '-', permissions) : console.log('FAILED:', currentTest)
+          currentTest = 'removeAllow'
+          return acl.removeAllowAsync('admin', 'testResource', 'write')
 
-        console.log('SUCCESS:', currentTest)
-        currentTest = 'allowedPermissions'
-        return acl.allowedPermissionsAsync('john', 'testResource')
+        }).then(function () {
 
-      }).then(function (permissions) {
+          console.log('SUCCESS:', currentTest)
+          currentTest = 'allowedPermissions'
+          return acl.allowedPermissionsAsync('john', 'testResource')
 
-        var p = _.get(permissions, 'testResource')
-        var success = _.isArray(p) && !p.length
-        success ? console.log('SUCCESS:', currentTest, '-', permissions) : console.log('FAIL', currentTest)
-        currentTest = 'addRoleParents'
-        return acl.addRoleParents('regularUSER', 'admin')
+        }).then(function (permissions) {
 
-      }).then(function () {
+          var p = _.get(permissions, 'testResource')
+          var success = _.isArray(p) && !p.length
+          success ? console.log('SUCCESS:', currentTest, '-', permissions) : console.log('FAIL', currentTest)
+          currentTest = 'addRoleParents'
+          return acl.addRoleParentsAsync('regularUSER', 'admin')
 
-        console.log('SUCCESS:', currentTest)
-        currentTest = 'removeRoleParents'
-        return acl.removeRoleParents('regularUSER')
+        }).then(function () {
 
-      }).then(function () {
+          console.log('SUCCESS:', currentTest)
+          currentTest = 'removeRoleParents'
+          return acl.removeRoleParentsAsync('regularUSER')
 
-        console.log('SUCCESS:', currentTest)
+        }).then(function () {
 
-      }).then(function () {
+          console.log('SUCCESS:', currentTest)
 
-        process.exit()
+        }).then(function () {
 
-      }).catch(function (err) {
+          process.exit()
 
-        console.error('FAIL:', currentTest, err)
-        process.exit()
+        }).catch(function (err) {
 
+          console.error('FAIL:', currentTest, err)
+          process.exit()
+
+        })
       })
-    })
-  } else {
 
-    // acl.backend.clean(cb('CLEAN'))
-    // acl.addUserRoles('john', 'admin', cb('ADD_USER_ROLE'))
-    // acl.hasRole('john', 'admin', cb('HAS_ROLE'))
-    // acl.allow('admin', 'testResource', 'write', cb('ALLOW'))
-    // acl.isAllowed('john', 'testResource', 'write', cb('IS_ALLOWED'))
-    // acl.removeAllow('admin', 'testResource', 'write', cb('REMOVE_ALLOW'))
-    // acl.allowedPermissions('john', 'testResource', cb('ALLOWED_PERMISSIONS'))
-    // acl.addRoleParents('regularUSER', 'admin', cb('ADD_ROLE_PARENTS'))
-    // acl.removeRoleParents('regularUSER', cb('REMOVE_ROLE_PARENTS'))
+      break
 
-    process.exit()
+    case 'breakit':
+      currentTest = 'clean'
+      acl.backend.clean(function (err) {
+        if (err) throw err
+        currentTest = 'isAllowedAsync'
+        acl[currentTest]('john', 'testResource', 'write').then(function (res) {
+          console.log('SUCCESS:', currentTest, res)
+          process.exit()
+        }).catch(function (err) {
+          console.error('FAIL:', currentTest, err)
+          process.exit()
+        })
+      })
+
+      break
+
+    default:
+      process.exit()
   }
+
+
+// acl.backend.clean(cb('CLEAN'))
+// acl.addUserRoles('john', 'admin', cb('ADD_USER_ROLE'))
+// acl.hasRole('john', 'admin', cb('HAS_ROLE'))
+// acl.allow('admin', 'testResource', 'write', cb('ALLOW'))
+// acl.isAllowed('john', 'testResource', 'write', cb('IS_ALLOWED'))
+// acl.removeAllow('admin', 'testResource', 'write', cb('REMOVE_ALLOW'))
+// acl.allowedPermissions('john', 'testResource', cb('ALLOWED_PERMISSIONS'))
+// acl.addRoleParents('regularUSER', 'admin', cb('ADD_ROLE_PARENTS'))
+// acl.removeRoleParents('regularUSER', cb('REMOVE_ROLE_PARENTS'))
+
 }
 

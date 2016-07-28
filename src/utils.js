@@ -100,6 +100,25 @@ export function selectKey (backend, key, bucket) {
   return filter
 }
 
+export function ensureTable (backend, tables = [], exec, cb) {
+  tables = Array.isArray(tables) ? tables : [tables]
+
+  return backend.r.do(
+    backend._dbc.tableList(),
+    (list) => {
+      return backend.r.expr(tables).forEach((name) => {
+        return backend.r.branch(
+          list.contains(name).not(),
+          backend._dbc.tableCreate(name),
+          []
+        )
+      })
+    }
+  ).run(backend.connection).then(exec).catch((err) => {
+    cb(err)
+  })
+}
+
 export default {
   encodeText,
   decodeText,
@@ -111,5 +130,6 @@ export default {
   selectKeys,
   selectKey,
   getTableName,
-  getTable
+  getTable,
+  ensureTable
 }

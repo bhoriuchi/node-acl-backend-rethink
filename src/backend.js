@@ -3,6 +3,8 @@
 
  Implementation of the storage backend using RethinkDB
  based off of MongoDB backend https://github.com/OptimalBits/node_acl/blob/master/lib/mongodb-backend.js
+
+ Author: Branden Horiuchi <bhoriuchi@gmail.com>
  */
 import _ from './litedash'
 import contract from './contract'
@@ -13,7 +15,8 @@ import {
   selectKeys,
   getTable,
   pushUniq,
-  fixAllKeys
+  fixAllKeys,
+  ensureTable
 } from './utils'
 
 const OMIT_FIELDS = { _bucketname: true, key: true, id: true }
@@ -36,10 +39,7 @@ RethinkDBBackend.prototype = {
    Begins a transaction
    */
   begin : function () {
-    return {
-      tables: [],
-      ops: []
-    }
+    return { tables: [],  ops: [] }
   },
 
   /**
@@ -58,24 +58,7 @@ RethinkDBBackend.prototype = {
       })
     }
 
-    let ensureTable = () => {
-      return this.r.do(
-        this._dbc.tableList(),
-        (list) => {
-          return this.r.expr(trx.tables).forEach((name) => {
-            return this.r.branch(
-              list.contains(name).not(),
-              this._dbc.tableCreate(name),
-              []
-            )
-          })
-        }
-      ).run(this.connection).then(exec).catch((err) => {
-        cb(err)
-      })
-    }
-
-    this.ensureTable ? ensureTable() : exec()
+    this.ensureTable ? ensureTable(this, trx.tables, exec, cb) : exec()
   },
 
   /**
@@ -108,20 +91,21 @@ RethinkDBBackend.prototype = {
     let t = getTable(this, bucket)
     let filter = selectKey(this, key, bucket)
 
-    return t.table
-      .filter(filter)
-      .without(OMIT_FIELDS)
-      .coerceTo('array')
-      .run(this.connection)
-      .then((docs) => {
+    let exec = () => {
+      let query = t.table.filter(filter).without(OMIT_FIELDS).coerceTo('array')
+      return query.run(this.connection).then((docs) => {
         if (docs.length) return cb(null, _.keys(docs[0]))
         cb(null, [])
-    }).catch((err) => {
-      cb(err)
-    })
+      }).catch((err) => {
+        cb(err)
+      })
+    }
+
+    this.ensureTable ? ensureTable(this, t.name, exec, cb) : exec()
   },
 
   /**
+   * UN-TESTED
    Gets an object mapping each passed bucket to the union of the specified keys inside that bucket.
    */
   unions : function (buckets, keys, cb) {
@@ -167,16 +151,12 @@ RethinkDBBackend.prototype = {
     let keyArrays = []
     let t = getTable(this, bucket)
     let filter = selectKeys(this, keys, bucket)
+    let query = t.table.filter(filter).without(OMIT_FIELDS).coerceTo('array')
 
-    return t.table
-      .filter(filter)
-      .without(OMIT_FIELDS)
-      .coerceTo('array')
-      .run(this.connection)
-      .then((docs) => {
-        if (!docs.length) return cb(null, [])
-        fixAllKeys(docs).forEach((doc) => { keyArrays.push.apply(keyArrays, _.keys(doc)) })
-        cb(null, _.union(keyArrays))
+    return query.run(this.connection).then((docs) => {
+      if (!docs.length) return cb(null, [])
+      fixAllKeys(docs).forEach((doc) => { keyArrays.push.apply(keyArrays, _.keys(doc)) })
+      cb(null, _.union(keyArrays))
     }).catch((err) => {
       cb(err)
     })

@@ -1,21 +1,12 @@
 /**
  Design by Contract module (c) OptimalBits 2011.
 
- Roadmap:
- - Optional parameters. ['(string)', 'array']
- - Variable number of parameters.['number','...']
-
- api?:
-
- contract(arguments)
- .params('string', 'array', '...')
- .params('number')
- .end()
-
+ Converted to ES6 by Branden Horiuchi <bhoriuchi@gmail.com>
+ 
  */
-let noop = {}
 import _ from './litedash'
-// import _ from 'lodash'
+
+let noop = {}
 
 noop.params = function () {
   return this

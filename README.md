@@ -60,7 +60,7 @@ r.connect({}).then(function (connection) {
   * [`prefix="acl_"`] { `String` } - Prefix for table names
   * [`table="resources"`] { `String` } - Table name for useSingle
   * [`useSingle=false`] { `Boolean` } - Use a single table for storing data when `true`
-  * [`ensureTable=false`] { `Boolean` } - Creates a table if it does not exist when `true`
+  * [`ensureTable=false`] { `Boolean` } - Creates a table if it does not exist when `true`. For performance, this option should only be used in dev. In prod the core tables should be created before calling `acl` functions
 * [`connection`] { `Object` } - Database connection object. Required for `rethinkdb` driver and not used by `rethinkdbdash` driver
 
 

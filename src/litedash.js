@@ -1,3 +1,12 @@
+/*
+
+  Lite version of several lodash functions.
+  May not all work exactly the same as lodash in all situations
+
+  Author: Branden Horiuchi <bhoriuchi@gmail.com>
+
+*/
+
 export function isFunction (obj) {
   return typeof obj === 'function'
 }
@@ -125,6 +134,7 @@ export function union () {
 export function toArray (args) {
   return Array.prototype.slice.call(args)
 }
+
 export default {
   isFunction,
   isNumber,
