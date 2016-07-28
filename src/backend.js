@@ -21,12 +21,13 @@ const OMIT_FIELDS = { _bucketname: true, key: true, id: true }
 function RethinkDBBackend (r, opts) {
   opts = _.isHash(opts) ? opts : {}
   this.r = r
-  this.dbName = opts.dbName || 'test'
+  this.db = opts.db || 'test'
   this.prefix = opts.prefix || ''
   this.useSingle = Boolean(opts.useSingle)
   this.table = opts.table || 'resources'
   this.ensureTable = Boolean(opts.ensureTable)
-  this.db = this.r.db(this.dbName)
+  this.connection = opts.connection
+  this._dbc = this.r.db(this.db)
 }
 
 RethinkDBBackend.prototype = {
@@ -50,7 +51,7 @@ RethinkDBBackend.prototype = {
     let exec = () => {
       return this.r.do(trx.ops, (res) => {
         return res
-      }).run().then(() => {
+      }).run(this.connection).then(() => {
         cb()
       }).catch((err) => {
         cb(err)
@@ -59,17 +60,17 @@ RethinkDBBackend.prototype = {
 
     let ensureTable = () => {
       return this.r.do(
-        this.db.tableList(),
+        this._dbc.tableList(),
         (list) => {
           return this.r.expr(trx.tables).forEach((name) => {
             return this.r.branch(
               list.contains(name).not(),
-              this.db.tableCreate(name),
+              this._dbc.tableCreate(name),
               []
             )
           })
         }
-      ).run().then(exec).catch((err) => {
+      ).run(this.connection).then(exec).catch((err) => {
         cb(err)
       })
     }
@@ -83,13 +84,13 @@ RethinkDBBackend.prototype = {
   clean : function (cb) {
     contract(arguments).params('function').end()
 
-    return this.db.tableList().filter((name) => {
+    return this._dbc.tableList().filter((name) => {
       let coll = this.useSingle ? this.prefix + this.table : this.prefix
       let rx = coll ? `(?i)^${coll}` : '.*'
       return name.match(rx)
     }).forEach((name) => {
-      return this.db.tableDrop(name)
-    }).run().then(() => {
+      return this._dbc.tableDrop(name)
+    }).run(this.connection).then(() => {
       cb()
     }).catch((err) => {
       cb(err)
@@ -107,9 +108,14 @@ RethinkDBBackend.prototype = {
     let t = getTable(this, bucket)
     let filter = selectKey(this, key, bucket)
 
-    return t.table.filter(filter).without(OMIT_FIELDS).run().then((docs) => {
-      if (docs.length) return cb(null, _.keys(docs[0]))
-      cb(null, [])
+    return t.table
+      .filter(filter)
+      .without(OMIT_FIELDS)
+      .coerceTo('array')
+      .run(this.connection)
+      .then((docs) => {
+        if (docs.length) return cb(null, _.keys(docs[0]))
+        cb(null, [])
     }).catch((err) => {
       cb(err)
     })
@@ -129,7 +135,7 @@ RethinkDBBackend.prototype = {
       let t = getTable(this, bucket)
       let filter = selectKeys(this, keys, bucket)
       return t.table.filter(filter).without(OMIT_FIELDS)
-    }).run().then((results) => {
+    }).coerceTo('array').run(this.connection).then((results) => {
       _.forEach(buckets, (name, idx) => {
         let docs = results[idx]
         if (!docs.length) {
@@ -162,13 +168,15 @@ RethinkDBBackend.prototype = {
     let t = getTable(this, bucket)
     let filter = selectKeys(this, keys, bucket)
 
-    return t.table.filter(filter).without(OMIT_FIELDS).run().then((docs) => {
-      if (!docs.length) return cb(null, [])
-
-      fixAllKeys(docs).forEach((doc) => {
-        keyArrays.push.apply(keyArrays, _.keys(doc))
-      })
-      cb(null, _.union(keyArrays))
+    return t.table
+      .filter(filter)
+      .without(OMIT_FIELDS)
+      .coerceTo('array')
+      .run(this.connection)
+      .then((docs) => {
+        if (!docs.length) return cb(null, [])
+        fixAllKeys(docs).forEach((doc) => { keyArrays.push.apply(keyArrays, _.keys(doc)) })
+        cb(null, _.union(keyArrays))
     }).catch((err) => {
       cb(err)
     })

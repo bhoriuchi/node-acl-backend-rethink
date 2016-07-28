@@ -21,6 +21,7 @@
     "chai": "^3.5.0",
     "lodash": "^4.13.0",
     "mocha": "^2.5.3",
+    "rethinkdb": "^2.3.0",
     "rethinkdbdash": "^2.3.6",
     "rewire": "^2.5.1",
     "rollup": "^0.31.2",

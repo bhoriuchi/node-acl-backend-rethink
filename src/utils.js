@@ -6,7 +6,7 @@ export function getTableName (backend, bucket) {
 
 export function getTable (backend, bucket) {
   let name = getTableName(backend, bucket)
-  let table = backend.db.table(name)
+  let table = backend._dbc.table(name)
   return { name, table }
 }
 
