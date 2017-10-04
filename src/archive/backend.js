@@ -7,7 +7,7 @@
  Author: Branden Horiuchi <bhoriuchi@gmail.com>
  */
 import _ from './litedash'
-import contract from './contract'
+import contract from '../contract'
 import {
   encodeText,
   makeArray,
@@ -15,8 +15,11 @@ import {
   selectKeys,
   getTable,
   pushUniq,
+  fixKeys,
   fixAllKeys,
-  ensureTable
+  ensureTable,
+  getTableName,
+  enforceTables
 } from './utils'
 
 const OMIT_FIELDS = { _bucketname: true, key: true, id: true }
@@ -34,31 +37,28 @@ function RethinkDBBackend (r, opts, connection) {
 }
 
 RethinkDBBackend.prototype = {
-
   /**
-   Begins a transaction
+   *
+   * @returns {{tables: Array, ops: Array}}
    */
   begin : function () {
-    return { tables: [],  ops: [] }
+    return {
+      tables: [],
+      ops: []
+    }
   },
 
   /**
    Ends a transaction (and executes it)
    */
-  end : function (trx, cb){
+  end : function ({ ops, tables }, cb){
     contract(arguments).params('array', 'function').end()
 
-    let exec = () => {
-      return this.r.do(trx.ops, (res) => {
-        return res
-      }).run(this.connection).then(() => {
-        cb()
-      }).catch((err) => {
-        cb(err)
-      })
-    }
-
-    this.ensureTable ? ensureTable(this, trx.tables, exec, cb) : exec()
+    return enforceTables.call(this, tables).do(() => {
+      return this.r.do(ops, res => res)
+    })
+      .run(this.connection)
+      .then(() => cb(), cb)
   },
 
   /**
@@ -81,39 +81,50 @@ RethinkDBBackend.prototype = {
   },
 
   /**
-   Gets the contents at the bucket's key.
+   * Gets a key from a specified bucket
+   * @param bucket
+   * @param key
+   * @param cb
    */
   get : function (bucket, key, cb) {
     contract(arguments)
       .params('string', 'string|number', 'function')
       .end()
 
-    let t = getTable(this, bucket)
+    let r = this.r
+    let tableName = getTableName(this, bucket)
     let filter = selectKey(this, key, bucket)
 
-    let exec = () => {
-      let query = t.table.filter(filter).without(OMIT_FIELDS).coerceTo('array')
-      return query.run(this.connection).then((docs) => {
-        if (docs.length) return cb(null, _.keys(docs[0]))
-        cb(null, [])
-      }).catch((err) => {
-        cb(err)
-      })
-    }
-
-    this.ensureTable ? ensureTable(this, t.name, exec, cb) : exec()
+    return enforceTables.call(this, tableName).do(() => {
+      return r.db(this.db).table(tableName).filter(filter)
+        .without(OMIT_FIELDS)
+        .nth(0)
+        .default(null)
+    })
+      .run(this.connection)
+      .then(doc => {
+        return doc
+          ? cb(undefined, fixKeys(doc))
+          : cb(undefined, [])
+      }, cb)
   },
 
   /**
    * UN-TESTED
    Gets an object mapping each passed bucket to the union of the specified keys inside that bucket.
    */
+  /*
   unions : function (buckets, keys, cb) {
     contract(arguments)
       .params('array', 'array', 'function')
       .end()
 
     let result = {}
+
+    if (this.useSingle) {
+      let singleTable = getTable(this)
+
+    }
 
     return this.r.expr(buckets).map((bucket) => {
       let t = getTable(this, bucket)
@@ -137,6 +148,7 @@ RethinkDBBackend.prototype = {
       cb(err)
     })
   },
+  */
 
   /**
    Returns the union of the values in the given keys.

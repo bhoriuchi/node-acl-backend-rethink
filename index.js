@@ -3,8 +3,277 @@
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj;
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
+
+
+
+
+
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
+
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
+
+
+
+
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var toConsumableArray = function (arr) {
+  if (Array.isArray(arr)) {
+    for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
+
+    return arr2;
+  } else {
+    return Array.from(arr);
+  }
+};
+
+function getTypeName(val) {
+  return val && (typeof val === 'undefined' ? 'undefined' : _typeof(val)) === 'object' ? val.constructor.name : null;
+}
+
+function stringDefault(val, defaultValue) {
+  return val && typeof val === 'string' ? val : defaultValue;
+}
+
+/* start https://github.com/OptimalBits/node_acl/blob/master/lib/mongodb-backend.js */
+function encodeText(text) {
+  if (typeof text == 'string' || text instanceof String) {
+    text = encodeURIComponent(text);
+    text = text.replace(/\./g, '%2E');
+  }
+  return text;
+}
+
+function decodeText(text) {
+  if (typeof text == 'string' || text instanceof String) {
+    text = decodeURIComponent(text);
+  }
+  return text;
+}
+
+function encodeAll(arrOrText) {
+  return Array.isArray(arrOrText) ? arrOrText.map(function (item) {
+    return encodeText(item);
+  }) : [encodeText(arrOrText)];
+}
+
+function fixKeys(doc) {
+  if (doc) {
+    var ret = {};
+    for (var key in doc) {
+      if (doc.hasOwnProperty(key)) {
+        ret[decodeText(key)] = doc[key];
+      }
+    }
+    return ret;
+  }
+  return doc;
+}
+
+function union() {
+  var args = [].concat(Array.prototype.slice.call(arguments));
+  if (!args.length) return [];
+
+  try {
+    var u = args.reduce(function (prev, cur) {
+      if (!Array.isArray(prev) || !Array.isArray(cur)) return [];
+      return prev.concat(cur);
+    }, []);
+
+    return [].concat(toConsumableArray(new Set(u)));
+  } catch (err) {
+    return [];
+  }
+}
+
+function range(n) {
+  return new Array(n).fill(null).reduce(function (accum, val, idx) {
+    accum.push(idx);
+    return accum;
+  }, []);
+}
+
+function keys(obj) {
+  try {
+    return Array.isArray(obj) ? range(obj.length) : Object.keys(obj);
+  } catch (err) {
+    return [];
+  }
+}
 
 /*
 
@@ -57,7 +326,7 @@ function toString(obj) {
   return '';
 }
 
-function keys(obj) {
+function keys$1(obj) {
   try {
     return Object.keys(obj);
   } catch (err) {
@@ -143,7 +412,7 @@ function contains(list, obj) {
   return found;
 }
 
-function uniq(list) {
+function uniq$1(list) {
   var newList = [];
   forEach(list, function (item) {
     if (!contains(newList, item)) newList.push(item);
@@ -151,16 +420,16 @@ function uniq(list) {
   return newList;
 }
 
-function union() {
+function union$1() {
   var args = Array.prototype.slice.call(arguments);
   var newList = [];
   forEach(args, function (list) {
     newList = newList.concat(list);
   });
-  return uniq(newList);
+  return uniq$1(newList);
 }
 
-function toArray(args) {
+function toArray$1(args) {
   return Array.prototype.slice.call(args);
 }
 
@@ -175,17 +444,23 @@ var _ = {
   isObject: isObject,
   isHash: isHash,
   toString: toString,
-  keys: keys,
+  keys: keys$1,
   forEach: forEach,
   includes: includes,
   without: without,
   omit: omit,
   contains: contains,
-  uniq: uniq,
-  union: union,
-  toArray: toArray
+  uniq: uniq$1,
+  union: union$1,
+  toArray: toArray$1
 };
 
+/**
+ Design by Contract module (c) OptimalBits 2011.
+
+ Converted to ES6 by Branden Horiuchi <bhoriuchi@gmail.com>
+ 
+ */
 var noop = {};
 
 noop.params = function () {
@@ -205,7 +480,6 @@ var contract = function contract(args) {
 };
 
 contract.params = function () {
-  var i, len;
   this.fulfilled |= checkParams(this.args, _.toArray(arguments));
   if (this.fulfilled) {
     return noop;
@@ -287,330 +561,327 @@ var argsToString = function argsToString(args) {
   return res;
 };
 
-function getTableName(backend, bucket) {
-  return backend.prefix + (backend.useSingle ? backend.table : bucket);
-}
-
-function getTable(backend, bucket) {
-  var name = getTableName(backend, bucket);
-  var table = backend._dbc.table(name);
-  return { name: name, table: table };
-}
-
-function pushUniq(val) {
-  var arr = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
-
-  if (!_.includes(arr, val)) arr.push(val);
-  return arr;
-}
-
-/* start https://github.com/OptimalBits/node_acl/blob/master/lib/mongodb-backend.js */
-function encodeText(text) {
-  if (typeof text == 'string' || text instanceof String) {
-    text = encodeURIComponent(text);
-    text = text.replace(/\./g, '%2E');
-  }
-  return text;
-}
-
-function decodeText(text) {
-  if (typeof text == 'string' || text instanceof String) {
-    text = decodeURIComponent(text);
-  }
-  return text;
-}
-
-function encodeAll(arr) {
-  if (Array.isArray(arr)) {
-    var ret = [];
-    arr.forEach(function (aval) {
-      ret.push(encodeText(aval));
-    });
-    return ret;
-  } else {
-    return arr;
-  }
-}
-
-function fixKeys(doc) {
-  if (doc) {
-    var ret = {};
-    for (var key in doc) {
-      if (doc.hasOwnProperty(key)) {
-        ret[decodeText(key)] = doc[key];
-      }
-    }
-    return ret;
-  } else {
-    return doc;
-  }
-}
-
-function fixAllKeys(docs) {
-  if (docs && docs.length) {
-    var ret = [];
-    docs.forEach(function (adoc) {
-      ret.push(fixKeys(adoc));
-    });
-    return ret;
-  } else {
-    return docs;
-  }
-}
-
-function makeArray(arr) {
-  return Array.isArray(arr) ? encodeAll(arr) : [encodeText(arr)];
-}
-/* end https://github.com/OptimalBits/node_acl/blob/master/lib/mongodb-backend.js */
-
-function selectKeys(backend, keys, bucket) {
-  return function (doc) {
-    var query = backend.r.expr(keys).contains(doc('key'));
-    return backend.useSingle ? query.and(doc('_bucketname').eq(bucket)) : query;
-  };
-}
-
-function selectKey(backend, key, bucket) {
-  var filter = { key: key };
-  if (backend.useSingle) filter._bucketname = bucket;
-  return filter;
-}
-
-function ensureTable(backend) {
-  var tables = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
-  var exec = arguments[2];
-  var cb = arguments[3];
-
-  tables = Array.isArray(tables) ? tables : [tables];
-
-  return backend.r.do(backend._dbc.tableList(), function (list) {
-    return backend.r.expr(tables).forEach(function (name) {
-      return backend.r.branch(list.contains(name).not(), backend._dbc.tableCreate(name), []);
-    });
-  }).run(backend.connection).then(exec).catch(function (err) {
-    cb(err);
-  });
-}
-
-var OMIT_FIELDS = { _bucketname: true, key: true, id: true };
-
-function RethinkDBBackend(r, opts, connection) {
-  opts = _.isHash(opts) ? opts : {};
-  this.r = r;
-  this.db = opts.db || 'test';
-  this.prefix = opts.prefix || '';
-  this.useSingle = Boolean(opts.useSingle);
-  this.table = opts.table || 'resources';
-  this.ensureTable = Boolean(opts.ensureTable);
-  this.connection = connection;
-  this._dbc = this.r.db(this.db);
-}
-
-RethinkDBBackend.prototype = {
-
-  /**
-   Begins a transaction
-   */
-  begin: function begin() {
-    return { tables: [], ops: [] };
-  },
-
-  /**
-   Ends a transaction (and executes it)
-   */
-  end: function end(trx, cb) {
-    var _this = this;
-
-    contract(arguments).params('array', 'function').end();
-
-    var exec = function exec() {
-      return _this.r.do(trx.ops, function (res) {
-        return res;
-      }).run(_this.connection).then(function () {
-        cb();
-      }).catch(function (err) {
-        cb(err);
-      });
-    };
-
-    this.ensureTable ? ensureTable(this, trx.tables, exec, cb) : exec();
-  },
-
-  /**
-   Cleans the whole storage.
-   */
-  clean: function clean(cb) {
-    var _this2 = this;
-
-    contract(arguments).params('function').end();
-
-    return this._dbc.tableList().filter(function (name) {
-      var coll = _this2.useSingle ? _this2.prefix + _this2.table : _this2.prefix;
-      var rx = coll ? '(?i)^' + coll : '.*';
-      return name.match(rx);
-    }).forEach(function (name) {
-      return _this2._dbc.tableDrop(name);
-    }).run(this.connection).then(function () {
-      cb();
-    }).catch(function (err) {
-      cb(err);
-    });
-  },
-
-  /**
-   Gets the contents at the bucket's key.
-   */
-  get: function get(bucket, key, cb) {
-    var _this3 = this;
-
-    contract(arguments).params('string', 'string|number', 'function').end();
-
-    var t = getTable(this, bucket);
-    var filter = selectKey(this, key, bucket);
-
-    var exec = function exec() {
-      var query = t.table.filter(filter).without(OMIT_FIELDS).coerceTo('array');
-      return query.run(_this3.connection).then(function (docs) {
-        if (docs.length) return cb(null, _.keys(docs[0]));
-        cb(null, []);
-      }).catch(function (err) {
-        cb(err);
-      });
-    };
-
-    this.ensureTable ? ensureTable(this, t.name, exec, cb) : exec();
-  },
-
-  /**
-   * UN-TESTED
-   Gets an object mapping each passed bucket to the union of the specified keys inside that bucket.
-   */
-  unions: function unions(buckets, keys, cb) {
-    var _this4 = this;
-
-    contract(arguments).params('array', 'array', 'function').end();
-
-    var result = {};
-
-    return this.r.expr(buckets).map(function (bucket) {
-      var t = getTable(_this4, bucket);
-      var filter = selectKeys(_this4, keys, bucket);
-      return t.table.filter(filter).without(OMIT_FIELDS);
-    }).coerceTo('array').run(this.connection).then(function (results) {
-      _.forEach(buckets, function (name, idx) {
-        var docs = results[idx];
-        if (!docs.length) {
-          result[name] = [];
-        } else {
-          (function () {
-            var keyArrays = [];
-            fixAllKeys(docs).forEach(function (doc) {
-              keyArrays.push.apply(keyArrays, _.keys(doc));
-            });
-            result[name] = _.union(keyArrays);
-          })();
-        }
-      });
-      cb(null, result);
-    }).catch(function (err) {
-      cb(err);
-    });
-  },
-
-  /**
-   Returns the union of the values in the given keys.
-   */
-  union: function union(bucket, keys, cb) {
-    contract(arguments).params('string', 'array', 'function').end();
-
-    keys = makeArray(keys);
-
-    var keyArrays = [];
-    var t = getTable(this, bucket);
-    var filter = selectKeys(this, keys, bucket);
-    var query = t.table.filter(filter).without(OMIT_FIELDS).coerceTo('array');
-
-    return query.run(this.connection).then(function (docs) {
-      if (!docs.length) return cb(null, []);
-      fixAllKeys(docs).forEach(function (doc) {
-        keyArrays.push.apply(keyArrays, _.keys(doc));
-      });
-      cb(null, _.union(keyArrays));
-    }).catch(function (err) {
-      cb(err);
-    });
-  },
-
-  /**
-   Adds values to a given key inside a bucket.
-   */
-  add: function add(trx, bucket, key, values) {
-    var _this5 = this;
-
-    contract(arguments).params('array', 'string', 'string|number', 'string|array|number').end();
-
-    if (key === 'key') throw new Error("Key name 'key' is not allowed.");
-    key = encodeText(key);
-
-    var doc = {};
-    var t = getTable(this, bucket);
-    var filter = selectKey(this, key, bucket);
-
-    values = makeArray(values);
-    values.forEach(function (value) {
-      doc[value] = true;
-    });
-    pushUniq(t.name, trx.tables);
-
-    trx.ops.push(this.r.do(t.table.filter(filter).coerceTo('array'), function (docs) {
-      return _this5.r.branch(docs.count().gt(0).coerceTo('bool'), t.table.get(docs.nth(0)('id')).update(doc), t.table.insert(Object.assign({}, filter, doc)));
-    }));
-  },
-
-  /**
-   Delete the given key(s) at the bucket
-   */
-  del: function del(trx, bucket, keys) {
-    var _this6 = this;
-
-    contract(arguments).params('array', 'string', 'string|array').end();
-
-    keys = makeArray(keys);
-
-    var t = getTable(this, bucket);
-    var filter = selectKeys(this, keys, bucket);
-
-    pushUniq(t.name, trx.tables);
-
-    trx.ops.push(this.r.do(t.table.filter(filter).coerceTo('array'), function (docs) {
-      return _this6.r.branch(docs.count().gt(0).coerceTo('bool'), t.table.filter(filter).delete(), []);
-    }));
-  },
-
-  /**
-   Removes values from a given key inside a bucket.
-   */
-  remove: function remove(trx, bucket, key, values) {
-    var _this7 = this;
-
-    contract(arguments).params('array', 'string', 'string|number', 'string|array|number').end();
-
-    key = encodeText(key);
-
-    var doc = {};
-    var t = getTable(this, bucket);
-    var filter = selectKey(this, key, bucket);
-
-    values = makeArray(values);
-    values.forEach(function (value) {
-      doc[value] = true;
-    });
-    pushUniq(t.name, trx.tables);
-
-    trx.ops.push(this.r.do(t.table.filter(filter).without(doc).coerceTo('array'), function (docs) {
-      return _this7.r.branch(docs.count().gt(0).coerceTo('bool'), t.table.get(docs.nth(0)('id')).replace(docs.nth(0)), []);
-    }));
-  }
+var OMIT_FIELDS = {
+  _bucketname: true,
+  key: true,
+  id: true
 };
 
-module.exports = RethinkDBBackend;
+var RethinkDBACLBackend = function () {
+  function RethinkDBACLBackend(r, options, connection) {
+    classCallCheck(this, RethinkDBACLBackend);
+
+    if (getTypeName(options) === 'TcpConnection') {
+      connection = options;
+      options = {};
+    }
+    options = options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' ? options : {};
+
+    // user specified values
+    this._r = r;
+    this._options = options;
+    this._connection = connection;
+
+    // interpreted options
+    this._db = stringDefault(options.db, 'test');
+    this._prefix = stringDefault(options.prefix, 'acl_');
+    this._table = stringDefault(options.table, 'access');
+    this._single = options.useSingle === true;
+    this._ensureTable = options.ensureTable === true;
+  }
+
+  /**
+   * Insert an add transaction
+   * @param trx
+   * @param bucket
+   * @param key
+   * @param values
+   */
+
+
+  createClass(RethinkDBACLBackend, [{
+    key: 'add',
+    value: function add(trx, bucket, key, values) {
+      contract(arguments).params('array', 'string', 'string|number', 'string|array|number').end();
+      key = encodeText(key);
+      values = encodeAll(values);
+
+      var r = this._r;
+      var db = this._db;
+      var tableName = this._getTableName(bucket);
+      var filter = this._keyFilter(key, bucket);
+
+      // create an error if the key is named key
+      if (key === 'key') {
+        trx.ops.push(r.error('acl keys cannot be named "key"'));
+        return;
+      }
+
+      // construct a document to save
+      var doc = values.reduce(function (accum, value) {
+        accum[value] = true;
+        return accum;
+      }, {});
+
+      // add the table to the transaction
+      if (trx.tables.indexOf(tableName) === -1) trx.tables.push(tableName);
+
+      // construct the operation
+      var op = r.db(db).table(tableName).filter(filter).nth(0).default(null).do(function (docs) {
+        return docs.eq(null).branch(r.db(db).table(tableName).insert(Object.assign({}, filter, doc)), r.db(db).table(tableName).get(docs('id')).update(doc)).do(function (summary) {
+          return summary('errors').ne(0).branch(r.error(summary('first_error')), true);
+        });
+      });
+
+      // add the operation
+      trx.ops.push(op);
+    }
+
+    /**
+     * Create a transaction object
+     * @returns {{tables: Array, ops: Array}}
+     */
+
+  }, {
+    key: 'begin',
+    value: function begin() {
+      return {
+        tables: [],
+        ops: []
+      };
+    }
+
+    /**
+     * Removes the tables
+     * @param cb
+     */
+
+  }, {
+    key: 'clean',
+    value: function clean(cb) {
+      var _this = this;
+
+      contract(arguments).params('function').end();
+
+      var r = this._r;
+      var db = this._db;
+
+      return r.db(db).tableList().filter(function (name) {
+        var tableName = _this._single ? '' + _this._prefix + _this._table : _this._prefix;
+
+        return name.match(tableName ? '(?i)^' + tableName : '.*');
+      }).forEach(function (tableName) {
+        return r.db(db).tableDrop(tableName);
+      }).run(this._connection).then(function () {
+        return cb();
+      }, cb);
+    }
+
+    /**
+     * Deletes the given keys from the bucket
+     * @param trx
+     * @param bucket
+     * @param keys
+     */
+
+  }, {
+    key: 'del',
+    value: function del(trx, bucket, keys$$1) {
+      var _this2 = this;
+
+      contract(arguments).params('array', 'string', 'string|array').end();
+      keys$$1 = encodeAll(keys$$1);
+
+      var r = this._r;
+      var db = this._db;
+      var tableName = this._getTableName(bucket);
+
+      // add the table
+      if (trx.tables.indexOf(tableName) === -1) trx.tables.push(tableName);
+
+      // build the operation
+      var op = r.db(db).table(tableName).filter(function (doc) {
+        return _this2._single ? r.expr(keys$$1).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys$$1).contains(doc('key'));
+      }).delete().do(function (summary) {
+        return summary('errors').ne(0).branch(r.error(summary('first_error')), true);
+      });
+
+      // add the operation to the transaction
+      trx.ops.push(op);
+    }
+
+    /**
+     * Performs all of the operations in the transaction
+     * @param trx
+     * @param cb
+     */
+
+  }, {
+    key: 'end',
+    value: function end(trx, cb) {
+      var _this3 = this;
+
+      contract(arguments).params('array', 'function').end();
+      var ops = trx.ops,
+          tables = trx.tables;
+
+
+      return this._enforceTables(tables).do(function () {
+        return _this3._r.do(ops, function (res) {
+          return res;
+        });
+      }).run(this._connection).then(function () {
+        return cb();
+      }, cb);
+    }
+
+    /**
+     * Gets a key from the specified bucket
+     * @param bucket
+     * @param key
+     * @param cb
+     */
+
+  }, {
+    key: 'get',
+    value: function get$$1(bucket, key, cb) {
+      contract(arguments).params('string', 'string|number', 'function').end();
+      key = encodeText(key);
+
+      var r = this._r;
+      var db = this._db;
+      var tableName = this._getTableName(bucket);
+      var filter = this._keyFilter(key, bucket);
+
+      return this._enforceTables(tableName).do(function () {
+        return r.db(db).table(tableName).filter(filter).without(OMIT_FIELDS).nth(0).default(null);
+      }).run(this._connection).then(function (doc) {
+        return doc ? cb(undefined, keys(fixKeys(doc))) : cb(undefined, []);
+      }, cb);
+    }
+
+    /**
+     * Removes a key from a specific bucket
+     * @param trx
+     * @param bucket
+     * @param key
+     * @param values
+     */
+
+  }, {
+    key: 'remove',
+    value: function remove(trx, bucket, key, values) {
+      contract(arguments).params('array', 'string', 'string|number', 'string|array|number').end();
+      key = encodeText(key);
+      values = encodeAll(values);
+
+      var r = this._r;
+      var db = this._db;
+      var tableName = this._getTableName(bucket);
+      var filter = this._keyFilter(key, bucket);
+
+      // construct a document to save
+      var doc = values.reduce(function (accum, value) {
+        accum[value] = true;
+        return accum;
+      }, {});
+
+      // add the table to the transaction
+      if (trx.tables.indexOf(tableName) === -1) trx.tables.push(tableName);
+
+      // build the operation
+      var op = r.db(db).table(tableName).filter(filter).without(doc).nth(0).default(null).do(function (rec) {
+        return rec.eq(null).branch(true, r.db(db).table(tableName).get(rec('id')).replace(rec).do(function (summary) {
+          return summary('errors').ne(0).branch(r.error(summary('first_error')), true);
+        }));
+      });
+    }
+
+    /**
+     *
+     * @param bucket
+     * @param keys
+     * @param cb
+     */
+
+  }, {
+    key: 'union',
+    value: function union$$1(bucket, keys$$1, cb) {
+      var _this4 = this;
+
+      contract(arguments).params('string', 'array', 'function').end();
+      keys$$1 = encodeAll(keys$$1);
+
+      var r = this._r;
+      var db = this._db;
+      var tableName = this._getTableName(bucket);
+
+      return this._enforceTables(tableName).do(function () {
+        return r.db(db).table(tableName).filter(function (doc) {
+          return _this4._single ? r.expr(keys$$1).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys$$1).contains(doc('key'));
+        }).without(OMIT_FIELDS).coerceTo('array');
+      }).run(this._connection).then(function (docs) {
+        var res = docs.reduce(function (accum, doc) {
+          keys(fixKeys(doc)).forEach(function (key) {
+            return accum.push(key);
+          });
+          return accum;
+        }, []);
+
+        return cb(undefined, union(res));
+      }, cb);
+    }
+
+    /**
+     * When set to ensure tables, creates tables that do not exist
+     * @param tables
+     * @private
+     */
+
+  }, {
+    key: '_enforceTables',
+    value: function _enforceTables(tables) {
+      var _this5 = this;
+
+      var r = this._r;
+      var db = this._db;
+      tables = Array.isArray(tables) ? tables : [tables];
+
+      return r.expr(tables).forEach(function (tableName) {
+        return r.db(db).tableList().contains(tableName).branch([], r.expr(_this5._ensureTable).eq(true).branch(r.db(db).tableCreate(tableName).do(function () {
+          return [];
+        }), r.error('table "' + tableName + '" has not been created on database "' + db + '"')));
+      });
+    }
+
+    /**
+     * Determines the table name based on the current options and bucket
+     * @param bucket
+     * @returns {string}
+     * @private
+     */
+
+  }, {
+    key: '_getTableName',
+    value: function _getTableName(bucket) {
+      return '' + this._prefix + (this._single ? this._table : bucket);
+    }
+
+    /**
+     * Creates a filter object to select the correct key/bucket
+     * @param key
+     * @param _bucketname
+     * @returns {*}
+     * @private
+     */
+
+  }, {
+    key: '_keyFilter',
+    value: function _keyFilter(key, _bucketname) {
+      return this._single ? { key: key, _bucketname: _bucketname } : { key: key };
+    }
+  }]);
+  return RethinkDBACLBackend;
+}();
+
+module.exports = RethinkDBACLBackend;

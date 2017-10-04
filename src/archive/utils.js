@@ -100,6 +100,23 @@ export function selectKey (backend, key, bucket) {
   return filter
 }
 
+export function enforceTables (tables) {
+  let r = this.r
+  let db = this.db
+  let ensureTable = this.ensureTable === true
+  tables = Array.isArray(tables) ? tables : [tables]
+
+  return r.expr(tables).forEach(tableName => {
+    return r.db(db).tableList().contains(tableName).branch(
+      [],
+      r.expr(ensureTable).eq(true).branch(
+        r.db(db).tableCreate(tableName).do(() => []),
+        r.error(`table "${tableName}" has not been created on database "${db}"`)
+      )
+    )
+  })
+}
+
 export function ensureTable (backend, tables = [], exec, cb) {
   tables = Array.isArray(tables) ? tables : [tables]
 
@@ -131,5 +148,6 @@ export default {
   selectKey,
   getTableName,
   getTable,
-  ensureTable
+  ensureTable,
+  enforceTables
 }

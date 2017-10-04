@@ -2,7 +2,7 @@ require('babel-register')
 var Promise = require('bluebird')
 var acl = require('acl')
 var rethinkdbdash = require('rethinkdbdash')
-var RethinkDBBackend = require('../src/backend').default
+var RethinkDBBackend = require('../src/archive/backend').default
 // var RethinkDBBackend = require('../index')
 var r = rethinkdbdash()
 var rdb = require('rethinkdb')
