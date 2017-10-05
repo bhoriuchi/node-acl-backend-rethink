@@ -17,7 +17,9 @@
     "test": "npm run build && mocha test/index.js"
   },
   "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.4"
+  },
   "devDependencies": {
     "acl": "^0.4.11",
     "babel-core": "^6.26.0",
@@ -29,7 +31,6 @@
     "babel-runtime": "^6.26.0",
     "bluebird": "^3.4.0",
     "chai": "^4.1.2",
-    "lodash": "^4.17.4",
     "mocha": "^2.5.3",
     "rethinkdb": "^2.3.3",
     "rethinkdbdash": "^2.3.31",

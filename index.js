@@ -1,5 +1,9 @@
 'use strict';
 
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var _ = _interopDefault(require('lodash'));
+
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
@@ -151,310 +155,6 @@ var createClass = function () {
   };
 }();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var toConsumableArray = function (arr) {
-  if (Array.isArray(arr)) {
-    for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
-
-    return arr2;
-  } else {
-    return Array.from(arr);
-  }
-};
-
-function getTypeName(val) {
-  return val && (typeof val === 'undefined' ? 'undefined' : _typeof(val)) === 'object' ? val.constructor.name : null;
-}
-
-function stringDefault(val, defaultValue) {
-  return val && typeof val === 'string' ? val : defaultValue;
-}
-
-/* start https://github.com/OptimalBits/node_acl/blob/master/lib/mongodb-backend.js */
-function encodeText(text) {
-  if (typeof text == 'string' || text instanceof String) {
-    text = encodeURIComponent(text);
-    text = text.replace(/\./g, '%2E');
-  }
-  return text;
-}
-
-function decodeText(text) {
-  if (typeof text == 'string' || text instanceof String) {
-    text = decodeURIComponent(text);
-  }
-  return text;
-}
-
-function encodeAll(arrOrText) {
-  return Array.isArray(arrOrText) ? arrOrText.map(function (item) {
-    return encodeText(item);
-  }) : [encodeText(arrOrText)];
-}
-
-function fixKeys(doc) {
-  if (doc) {
-    var ret = {};
-    for (var key in doc) {
-      if (doc.hasOwnProperty(key)) {
-        ret[decodeText(key)] = doc[key];
-      }
-    }
-    return ret;
-  }
-  return doc;
-}
-
-function union() {
-  var args = [].concat(Array.prototype.slice.call(arguments));
-  if (!args.length) return [];
-
-  try {
-    var u = args.reduce(function (prev, cur) {
-      if (!Array.isArray(prev) || !Array.isArray(cur)) return [];
-      return prev.concat(cur);
-    }, []);
-
-    return [].concat(toConsumableArray(new Set(u)));
-  } catch (err) {
-    return [];
-  }
-}
-
-function range(n) {
-  return new Array(n).fill(null).reduce(function (accum, val, idx) {
-    accum.push(idx);
-    return accum;
-  }, []);
-}
-
-function keys(obj) {
-  try {
-    return Array.isArray(obj) ? range(obj.length) : Object.keys(obj);
-  } catch (err) {
-    return [];
-  }
-}
-
-/*
-
-  Lite version of several lodash functions.
-  May not all work exactly the same as lodash in all situations
-
-  Author: Branden Horiuchi <bhoriuchi@gmail.com>
-
-*/
-
-function isFunction(obj) {
-  return typeof obj === 'function';
-}
-
-function isString(obj) {
-  return typeof obj === 'string';
-}
-
-function isNumber(obj) {
-  return typeof obj === 'number';
-}
-
-function isArray(obj) {
-  return Array.isArray(obj);
-}
-
-function ensureArray(obj) {
-  return !obj ? [] : isArray(obj) ? obj : [obj];
-}
-
-function isBoolean(obj) {
-  return typeof obj === 'boolean';
-}
-
-function isDate(obj) {
-  return obj instanceof Date;
-}
-
-function isObject(obj) {
-  return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && obj !== null;
-}
-
-function isHash(obj) {
-  return isObject(obj) && !isArray(obj) && !isDate(obj) && obj !== null;
-}
-function toString(obj) {
-  try {
-    if (isHash(obj) || isArray(obj)) return JSON.stringify(obj);else if (has(obj, 'toString')) return obj.toString();else return String(obj);
-  } catch (err) {}
-  return '';
-}
-
-function keys$1(obj) {
-  try {
-    return Object.keys(obj);
-  } catch (err) {
-    return [];
-  }
-}
-
-function forEach(obj, fn) {
-  try {
-    if (isArray(obj)) {
-      var idx = 0;
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
-
-      try {
-        for (var _iterator = obj[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var val = _step.value;
-
-          if (fn(val, idx) === false) break;
-          idx++;
-        }
-      } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion && _iterator.return) {
-            _iterator.return();
-          }
-        } finally {
-          if (_didIteratorError) {
-            throw _iteratorError;
-          }
-        }
-      }
-    } else {
-      for (var key in obj) {
-        if (fn(obj[key], key) === false) break;
-      }
-    }
-  } catch (err) {
-    return;
-  }
-}
-
-function includes(obj, key) {
-  try {
-    return isArray(obj) && obj.indexOf(key) !== -1;
-  } catch (err) {
-    return false;
-  }
-}
-
-function without() {
-  var output = [];
-  var args = Array.prototype.slice.call(arguments);
-  if (args.length === 0) return output;else if (args.length === 1) return args[0];
-  var search = args.slice(1);
-  forEach(args[0], function (val) {
-    if (!includes(search, val)) output.push(val);
-  });
-  return output;
-}
-
-function omit(obj, values) {
-  var newObj = {};
-  if (!isHash(obj)) return newObj;
-  forEach(obj, function (v, k) {
-    if (!includes(values, k)) newObj[k] = v;
-  });
-  return newObj;
-}
-
-function contains(list, obj) {
-  var found = false;
-  forEach(list, function (item) {
-    if (item === obj) {
-      found = true;
-      return false;
-    }
-  });
-  return found;
-}
-
-function uniq$1(list) {
-  var newList = [];
-  forEach(list, function (item) {
-    if (!contains(newList, item)) newList.push(item);
-  });
-  return newList;
-}
-
-function union$1() {
-  var args = Array.prototype.slice.call(arguments);
-  var newList = [];
-  forEach(args, function (list) {
-    newList = newList.concat(list);
-  });
-  return uniq$1(newList);
-}
-
-function toArray$1(args) {
-  return Array.prototype.slice.call(args);
-}
-
-var _ = {
-  isFunction: isFunction,
-  isNumber: isNumber,
-  isString: isString,
-  isArray: isArray,
-  ensureArray: ensureArray,
-  isBoolean: isBoolean,
-  isDate: isDate,
-  isObject: isObject,
-  isHash: isHash,
-  toString: toString,
-  keys: keys$1,
-  forEach: forEach,
-  includes: includes,
-  without: without,
-  omit: omit,
-  contains: contains,
-  uniq: uniq$1,
-  union: union$1,
-  toArray: toArray$1
-};
-
 /**
  Design by Contract module (c) OptimalBits 2011.
 
@@ -561,6 +261,35 @@ var argsToString = function argsToString(args) {
   return res;
 };
 
+function decodeAll(arrOrText) {
+  return _.map(_.castArray(arrOrText), decodeText);
+}
+
+function decodeText(text) {
+  return _.isString(text) ? decodeURIComponent(text) : text;
+}
+
+function encodeAll(arrOrText) {
+  return _.map(_.castArray(arrOrText), encodeText);
+}
+
+function encodeText(text) {
+  return _.isString(text) ? encodeURIComponent(text).replace(/\./g, '%2E') : text;
+}
+
+function getTypeName(val) {
+  return _.isObject(val) && val ? val.constructor.name : null;
+}
+
+function stringDefault(val, defaultValue) {
+  return _.isString(val) && val ? val : defaultValue;
+}
+
+/**
+ * RethinkDB backend for ACL
+ * @author Branden Horiuchi <bhoriuchi@gmail.com>
+ * @liscense MIT
+ */
 var OMIT_FIELDS = {
   _bucketname: true,
   key: true,
@@ -575,9 +304,9 @@ var RethinkDBACLBackend = function () {
       connection = options;
       options = {};
     }
-    options = options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' ? options : {};
+    options = options && _.isObject(options) ? options : {};
 
-    // user specified values
+    // constructor arguments
     this._r = r;
     this._options = options;
     this._connection = connection;
@@ -686,11 +415,11 @@ var RethinkDBACLBackend = function () {
 
   }, {
     key: 'del',
-    value: function del(trx, bucket, keys$$1) {
+    value: function del(trx, bucket, keys) {
       var _this2 = this;
 
       contract(arguments).params('array', 'string', 'string|array').end();
-      keys$$1 = encodeAll(keys$$1);
+      keys = encodeAll(keys);
 
       var r = this._r;
       var db = this._db;
@@ -701,7 +430,7 @@ var RethinkDBACLBackend = function () {
 
       // build the operation
       var op = r.db(db).table(tableName).filter(function (doc) {
-        return _this2._single ? r.expr(keys$$1).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys$$1).contains(doc('key'));
+        return _this2._single ? r.expr(keys).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys).contains(doc('key'));
       }).delete().do(function (summary) {
         return summary('errors').ne(0).branch(r.error(summary('first_error')), true);
       });
@@ -754,9 +483,9 @@ var RethinkDBACLBackend = function () {
       var filter = this._keyFilter(key, bucket);
 
       return this._enforceTables(tableName).do(function () {
-        return r.db(db).table(tableName).filter(filter).without(OMIT_FIELDS).nth(0).default(null);
-      }).run(this._connection).then(function (doc) {
-        return doc ? cb(undefined, keys(fixKeys(doc))) : cb(undefined, []);
+        return r.db(db).table(tableName).filter(filter).without(OMIT_FIELDS).nth(0).default({}).keys();
+      }).run(this._connection).then(function (res) {
+        return cb(undefined, decodeAll(res));
       }, cb);
     }
 
@@ -795,10 +524,13 @@ var RethinkDBACLBackend = function () {
           return summary('errors').ne(0).branch(r.error(summary('first_error')), true);
         }));
       });
+
+      // add the operation to the transaction
+      trx.ops.push(op);
     }
 
     /**
-     *
+     * Returns the union of the values in the given keys
      * @param bucket
      * @param keys
      * @param cb
@@ -806,11 +538,11 @@ var RethinkDBACLBackend = function () {
 
   }, {
     key: 'union',
-    value: function union$$1(bucket, keys$$1, cb) {
+    value: function union(bucket, keys, cb) {
       var _this4 = this;
 
       contract(arguments).params('string', 'array', 'function').end();
-      keys$$1 = encodeAll(keys$$1);
+      keys = encodeAll(keys);
 
       var r = this._r;
       var db = this._db;
@@ -818,17 +550,60 @@ var RethinkDBACLBackend = function () {
 
       return this._enforceTables(tableName).do(function () {
         return r.db(db).table(tableName).filter(function (doc) {
-          return _this4._single ? r.expr(keys$$1).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys$$1).contains(doc('key'));
-        }).without(OMIT_FIELDS).coerceTo('array');
-      }).run(this._connection).then(function (docs) {
-        var res = docs.reduce(function (accum, doc) {
-          keys(fixKeys(doc)).forEach(function (key) {
-            return accum.push(key);
-          });
-          return accum;
-        }, []);
+          return _this4._single ? r.expr(keys).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys).contains(doc('key'));
+        }).without(OMIT_FIELDS).coerceTo('array').prepend([]).reduce(function (accum, cur) {
+          return accum.union(cur.keys().default([]));
+        });
+      }).run(this._connection).then(function (res) {
+        return cb(undefined, decodeAll(res));
+      }, cb);
+    }
 
-        return cb(undefined, union(res));
+    /**
+     * Gets the union of the keys in each of the specified buckets
+     * @param buckets
+     * @param keys
+     * @param cb
+     * @returns {*}
+     */
+
+  }, {
+    key: 'unions',
+    value: function unions(buckets, keys, cb) {
+      var _this5 = this;
+
+      contract(arguments).params('array', 'array', 'function').end();
+      keys = encodeAll(keys);
+
+      var r = this._r;
+      var db = this._db;
+
+      // get table names
+      var tables = this._single ? this._getTableName('') : _.map(buckets, function (bucket) {
+        return _this5._getTableName(bucket);
+      });
+
+      return this._enforceTables(tables).do(function () {
+        return r.expr(buckets).map(function (bucket) {
+          return {
+            bucket: bucket,
+            unions: r.db(db).table(_this5._getTableNameReQL(bucket)).filter(function (doc) {
+              return _this5._single ? r.expr(keys).contains(doc('key')).and(doc('_bucketname').eq(bucket)) : r.expr(keys).contains(doc('key'));
+            }).without(OMIT_FIELDS).coerceTo('array').prepend([]).reduce(function (accum, cur) {
+              return accum.union(cur.keys().default([]));
+            })
+          };
+        });
+      }).run(this._connection).then(function (res) {
+        var results = _.reduce(res, function (accum, _ref) {
+          var bucket = _ref.bucket,
+              unions = _ref.unions;
+
+          accum[bucket] = decodeAll(unions);
+          return accum;
+        }, {});
+
+        cb(undefined, results);
       }, cb);
     }
 
@@ -841,14 +616,14 @@ var RethinkDBACLBackend = function () {
   }, {
     key: '_enforceTables',
     value: function _enforceTables(tables) {
-      var _this5 = this;
+      var _this6 = this;
 
       var r = this._r;
       var db = this._db;
       tables = Array.isArray(tables) ? tables : [tables];
 
       return r.expr(tables).forEach(function (tableName) {
-        return r.db(db).tableList().contains(tableName).branch([], r.expr(_this5._ensureTable).eq(true).branch(r.db(db).tableCreate(tableName).do(function () {
+        return r.db(db).tableList().contains(tableName).branch([], r.expr(_this6._ensureTable).eq(true).branch(r.db(db).tableCreate(tableName).do(function () {
           return [];
         }), r.error('table "' + tableName + '" has not been created on database "' + db + '"')));
       });
@@ -865,6 +640,18 @@ var RethinkDBACLBackend = function () {
     key: '_getTableName',
     value: function _getTableName(bucket) {
       return '' + this._prefix + (this._single ? this._table : bucket);
+    }
+
+    /**
+     * Determines the table name based on the current options and bucket using ReQL
+     * @param bucket
+     * @private
+     */
+
+  }, {
+    key: '_getTableNameReQL',
+    value: function _getTableNameReQL(bucket) {
+      return this._r.expr(this._single).branch(this._r.expr(this._prefix).add(this._table), this._r.expr(this._prefix).add(bucket));
     }
 
     /**

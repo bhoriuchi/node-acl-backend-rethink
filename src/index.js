@@ -1,5 +1,17 @@
-import * as _ from './util'
+/**
+ * RethinkDB backend for ACL
+ * @author Branden Horiuchi <bhoriuchi@gmail.com>
+ * @liscense MIT
+ */
+import _ from 'lodash'
 import contract from './contract'
+import {
+  decodeAll,
+  encodeAll,
+  encodeText,
+  getTypeName,
+  stringDefault
+} from './util'
 
 const OMIT_FIELDS = {
   _bucketname: true,
@@ -9,23 +21,23 @@ const OMIT_FIELDS = {
 
 export default class RethinkDBACLBackend {
   constructor (r, options, connection) {
-    if (_.getTypeName(options) === 'TcpConnection') {
+    if (getTypeName(options) === 'TcpConnection') {
       connection = options
       options = {}
     }
-    options = options && typeof options === 'object'
+    options = options && _.isObject(options)
       ? options
       : {}
 
-    // user specified values
+    // constructor arguments
     this._r = r
     this._options = options
     this._connection = connection
 
     // interpreted options
-    this._db = _.stringDefault(options.db, 'test')
-    this._prefix = _.stringDefault(options.prefix, 'acl_')
-    this._table = _.stringDefault(options.table, 'access')
+    this._db = stringDefault(options.db, 'test')
+    this._prefix = stringDefault(options.prefix, 'acl_')
+    this._table = stringDefault(options.table, 'access')
     this._single = options.useSingle === true
     this._ensureTable = options.ensureTable === true
   }
@@ -39,8 +51,8 @@ export default class RethinkDBACLBackend {
    */
   add (trx, bucket, key, values) {
     contract(arguments).params('array', 'string', 'string|number','string|array|number').end()
-    key = _.encodeText(key)
-    values = _.encodeAll(values)
+    key = encodeText(key)
+    values = encodeAll(values)
 
     let r = this._r
     let db = this._db
@@ -122,7 +134,7 @@ export default class RethinkDBACLBackend {
    */
   del (trx, bucket, keys) {
     contract(arguments).params('array', 'string', 'string|array').end()
-    keys = _.encodeAll(keys)
+    keys = encodeAll(keys)
 
     let r = this._r
     let db = this._db
@@ -173,7 +185,7 @@ export default class RethinkDBACLBackend {
    */
   get (bucket, key, cb) {
     contract(arguments).params('string', 'string|number', 'function').end()
-    key = _.encodeText(key)
+    key = encodeText(key)
 
     let r = this._r
     let db = this._db
@@ -184,14 +196,11 @@ export default class RethinkDBACLBackend {
       return r.db(db).table(tableName).filter(filter)
         .without(OMIT_FIELDS)
         .nth(0)
-        .default(null)
+        .default({})
+        .keys()
     })
       .run(this._connection)
-      .then(doc => {
-        return doc
-          ? cb(undefined, _.keys(_.fixKeys(doc)))
-          : cb(undefined, [])
-      }, cb)
+      .then(res => cb(undefined, decodeAll(res)), cb)
   }
 
   /**
@@ -203,8 +212,8 @@ export default class RethinkDBACLBackend {
    */
   remove (trx, bucket, key, values) {
     contract(arguments).params('array', 'string', 'string|number','string|array|number').end()
-    key = _.encodeText(key)
-    values = _.encodeAll(values)
+    key = encodeText(key)
+    values = encodeAll(values)
 
     let r = this._r
     let db = this._db
@@ -238,17 +247,20 @@ export default class RethinkDBACLBackend {
             })
         )
       })
+
+    // add the operation to the transaction
+    trx.ops.push(op)
   }
 
   /**
-   *
+   * Returns the union of the values in the given keys
    * @param bucket
    * @param keys
    * @param cb
    */
   union (bucket, keys, cb) {
     contract(arguments).params('string', 'array', 'function').end()
-    keys = _.encodeAll(keys)
+    keys = encodeAll(keys)
 
     let r = this._r
     let db = this._db
@@ -262,15 +274,62 @@ export default class RethinkDBACLBackend {
       })
         .without(OMIT_FIELDS)
         .coerceTo('array')
+        .prepend([])
+        .reduce((accum, cur) => {
+          return accum.union(cur.keys().default([]))
+        })
     })
       .run(this._connection)
-      .then(docs => {
-        let res = docs.reduce((accum, doc) => {
-          _.keys(_.fixKeys(doc)).forEach(key => accum.push(key))
-          return accum
-        }, [])
+      .then(res => cb(undefined, decodeAll(res)), cb)
+  }
 
-        return cb(undefined, _.union(res))
+  /**
+   * Gets the union of the keys in each of the specified buckets
+   * @param buckets
+   * @param keys
+   * @param cb
+   * @returns {*}
+   */
+  unions (buckets, keys, cb) {
+    contract(arguments).params('array', 'array', 'function').end()
+    keys = encodeAll(keys)
+
+    let r = this._r
+    let db = this._db
+
+    // get table names
+    let tables = this._single
+      ? this._getTableName('')
+      : _.map(buckets, bucket => {
+        return this._getTableName(bucket)
+      })
+
+    return this._enforceTables(tables).do(() => {
+      return r.expr(buckets).map(bucket => {
+        return {
+          bucket,
+          unions: r.db(db).table(this._getTableNameReQL(bucket)).filter(doc => {
+            return this._single
+              ? r.expr(keys).contains(doc('key')).and(doc('_bucketname').eq(bucket))
+              : r.expr(keys).contains(doc('key'))
+          })
+            .without(OMIT_FIELDS)
+            .coerceTo('array')
+            .prepend([])
+            .reduce((accum, cur) => {
+              return accum.union(cur.keys().default([]))
+            })
+        }
+      })
+    })
+      .run(this._connection)
+      .then(res => {
+        let results = _.reduce(res, (accum, { bucket, unions }) => {
+          accum[bucket] = decodeAll(unions)
+          return accum
+        }, {})
+
+        cb(undefined, results)
       }, cb)
   }
 
@@ -303,6 +362,18 @@ export default class RethinkDBACLBackend {
    */
   _getTableName (bucket) {
     return `${this._prefix}${this._single ? this._table : bucket}`
+  }
+
+  /**
+   * Determines the table name based on the current options and bucket using ReQL
+   * @param bucket
+   * @private
+   */
+  _getTableNameReQL (bucket) {
+    return this._r.expr(this._single).branch(
+      this._r.expr(this._prefix).add(this._table),
+      this._r.expr(this._prefix).add(bucket)
+    )
   }
 
   /**
