@@ -1,6 +1,6 @@
 {
   "name": "acl-backend-rethinkdb",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "RethinkDB backend for acl",
   "license": "MIT",
   "main": "index.js",
@@ -14,28 +14,31 @@
     "build:copybrc": "cp build/.build.babelrc src/.babelrc",
     "build:rmbrc": "rm -f src/.babelrc",
     "build": "npm run build:copybrc && rollup -c build/rollup.config.js && npm run build:rmbrc",
-    "test": "npm run build && mocha test/index.js"
+    "mocha:test": "mocha test/index.js",
+    "test": "test/test.sh"
   },
   "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.4"
+  },
   "devDependencies": {
-    "acl": "^0.4.0",
+    "acl": "^0.4.11",
+    "babel-core": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-es2015-rollup": "^3.0.0",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "babel-runtime": "^6.26.0",
     "bluebird": "^3.4.0",
-    "chai": "^3.5.0",
-    "lodash": "^4.13.0",
+    "chai": "^4.1.2",
     "mocha": "^2.5.3",
-    "rethinkdb": "^2.3.0",
-    "rethinkdbdash": "^2.3.0",
+    "ms": "^2.0.0",
+    "rethinkdb": "^2.3.3",
+    "rethinkdbdash": "^2.3.31",
     "rewire": "^2.5.1",
-    "rollup": "^0.31.2",
-    "rollup-plugin-babel": "^2.5.1",
-    "babel-register": "^6.11.0",
-    "babel-runtime": "^6.9.0",
-    "babel-preset-es2015-rollup": "^1.1.1",
-    "babel-plugin-transform-runtime": "^6.0.0",
-    "babel-preset-stage-2": "^6.0.0",
-    "babel-preset-es2015": "^6.0.0",
-    "babel-core": "^6.0.0"
+    "rollup": "^0.50.0",
+    "rollup-plugin-babel": "^3.0.2"
   },
   "bugs": {
     "url": "https://github.com/bhoriuchi/node-acl-backend-rethink/issues"

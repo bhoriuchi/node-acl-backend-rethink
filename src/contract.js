@@ -4,7 +4,7 @@
  Converted to ES6 by Branden Horiuchi <bhoriuchi@gmail.com>
  
  */
-import _ from './litedash'
+import _ from 'lodash'
 
 let noop = {}
 
