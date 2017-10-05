@@ -1,1 +1,2 @@
-// TODO: Write tests
+require('babel-register')
+require('./test')

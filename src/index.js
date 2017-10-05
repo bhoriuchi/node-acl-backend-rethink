@@ -38,8 +38,8 @@ export default class RethinkDBACLBackend {
     this._db = stringDefault(options.db, 'test')
     this._prefix = stringDefault(options.prefix, 'acl_')
     this._table = stringDefault(options.table, 'access')
-    this._single = options.useSingle === true
-    this._ensureTable = options.ensureTable === true
+    this._single = options.useSingle !== false // default to use single table
+    this._ensureTable = options.ensureTable !== false // default to create tables that dont exist
   }
 
   /**
@@ -53,6 +53,7 @@ export default class RethinkDBACLBackend {
     contract(arguments).params('array', 'string', 'string|number','string|array|number').end()
     key = encodeText(key)
     values = encodeAll(values)
+    bucket = this._encodeBucket(bucket)
 
     let r = this._r
     let db = this._db
@@ -135,6 +136,7 @@ export default class RethinkDBACLBackend {
   del (trx, bucket, keys) {
     contract(arguments).params('array', 'string', 'string|array').end()
     keys = encodeAll(keys)
+    bucket = this._encodeBucket(bucket)
 
     let r = this._r
     let db = this._db
@@ -186,6 +188,7 @@ export default class RethinkDBACLBackend {
   get (bucket, key, cb) {
     contract(arguments).params('string', 'string|number', 'function').end()
     key = encodeText(key)
+    bucket = this._encodeBucket(bucket)
 
     let r = this._r
     let db = this._db
@@ -214,6 +217,7 @@ export default class RethinkDBACLBackend {
     contract(arguments).params('array', 'string', 'string|number','string|array|number').end()
     key = encodeText(key)
     values = encodeAll(values)
+    bucket = this._encodeBucket(bucket)
 
     let r = this._r
     let db = this._db
@@ -261,6 +265,7 @@ export default class RethinkDBACLBackend {
   union (bucket, keys, cb) {
     contract(arguments).params('string', 'array', 'function').end()
     keys = encodeAll(keys)
+    bucket = this._encodeBucket(bucket)
 
     let r = this._r
     let db = this._db
@@ -293,6 +298,9 @@ export default class RethinkDBACLBackend {
   unions (buckets, keys, cb) {
     contract(arguments).params('array', 'array', 'function').end()
     keys = encodeAll(keys)
+    buckets = _.map(buckets, bucket => {
+      return this._encodeBucket(bucket)
+    })
 
     let r = this._r
     let db = this._db
@@ -331,6 +339,22 @@ export default class RethinkDBACLBackend {
 
         cb(undefined, results)
       }, cb)
+  }
+
+  /**
+   * Encodes a bucket name using hex when not using single table option
+   * and not matching /A-Za-z0-9_/. This will use only alphanumeric to meet the
+   * table name requirement. This way Buckets can contain special characters
+   * @param bucket
+   * @returns {String}
+   * @private
+   */
+  _encodeBucket (bucket) {
+    return this._single
+      ? bucket
+      : bucket.match(/[^A-Za-z0-9_]/)
+        ? new Buffer(bucket).toString('hex')
+        : bucket
   }
 
   /**
